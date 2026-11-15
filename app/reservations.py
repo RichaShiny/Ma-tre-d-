@@ -1,6 +1,6 @@
 """Deterministic reservation tools. All seating decisions live here."""
 import json
-from contextlib import contextmanager
+from contextlib import contextmanager, nullcontext
 import sqlite3
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -81,15 +81,16 @@ class Reservations:
             self.validate(day, SLOTS[-1], party)
         return {'date': day, 'party_size': party, 'slots': result, 'timezone': str(ZONE)}
 
-    def book(self, day, slot, party, guest, notes, request_id, confirmed):
+    def book(self, day, slot, party, guest, notes, request_id, confirmed, *, connection=None):
         if not confirmed:
             raise ReservationError('Explicit guest confirmation is required before booking.')
         guest, notes = guest.strip(), notes.strip()
         if not guest or len(guest) > 100 or len(notes) > 500:
             raise ReservationError('Provide a guest name up to 100 characters and notes up to 500 characters.')
         fingerprint = json.dumps([day, slot, party, guest, notes])
-        with self.connect() as db:
-            db.execute('BEGIN IMMEDIATE')
+        with (self.connect() if connection is None else nullcontext(connection)) as db:
+            if connection is None:
+                db.execute('BEGIN IMMEDIATE')
             existing = db.execute('SELECT token, fingerprint, cancelled FROM bookings WHERE request_id=?', (request_id,)).fetchone()
             if existing:
                 if existing[1] != fingerprint or existing[2]:
