@@ -33,3 +33,7 @@ Benchmark one hosted open-weight endpoint against another hosted model on identi
 ## 5. Fine-tuning
 
 Use synthetic and consented, de-identified data for a narrow reservation-field extraction task. Split by scenario family to avoid template leakage. Compare baseline prompting, improved prompting, and a tuned model against the same untouched test set. Report errors, latency, cost, and whether tuning is justified. Do not claim improvement without measured evidence.
+
+## Implemented foundation: speech-quality lab
+
+The transcript-quality workbench now provides synthetic fixtures, repeatable WER/CER reports, coverage slices, a heuristic review queue, provenance-aware annotations, and development-only exports. See [speech-quality methodology](speech-quality.md). Actual audio characterization, calibrated ASR outputs, active-learning experiments, model adaptation, and representative benchmarks remain future work.

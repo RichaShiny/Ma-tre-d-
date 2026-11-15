@@ -4,15 +4,52 @@ from pathlib import Path
 from uuid import UUID
 
 from fastapi import FastAPI, Request
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import FileResponse, JSONResponse, Response
 from pydantic import BaseModel, Field
 
 from app.reservations import Reservations, ReservationError, ZONE
+from app.quality import load_samples, report, review_queue, dataset_hash, Reviews
+import json
 
 
 def create_app(database=None, clock=None):
     app = FastAPI(title='Maître d’', version='0.1.0')
     service = Reservations(database or os.getenv('DATABASE_PATH', 'data/reservations.sqlite3'), clock)
+
+    samples = load_samples()
+    reviews = Reviews(service.path)
+
+    @app.get('/quality')
+    def quality_page():
+        return FileResponse(Path(__file__).with_name('quality.html'))
+
+    @app.get('/api/quality/report')
+    def quality_report():
+        return report(samples)
+
+    @app.get('/api/quality/queue')
+    def queue():
+        reviewed = {row['sample_id'] for row in reviews.all(dataset_hash(samples))}
+        return {'items': review_queue(samples, reviewed), 'reviewed_samples': len(reviewed)}
+
+    class Review(BaseModel):
+        reference: str = Field(min_length=1, max_length=2000)
+        reviewer: str = Field(min_length=1, max_length=80)
+        reason: str = Field(min_length=1, max_length=500)
+
+    @app.post('/api/quality/reviews/{sample_id}')
+    def save_review(sample_id: str, body: Review):
+        try:
+            return reviews.add(samples, sample_id, body.reference, body.reviewer, body.reason)
+        except ValueError as error:
+            return JSONResponse(status_code=422, content={'detail': str(error)})
+
+    @app.get('/api/quality/export')
+    def export_reviews():
+        rows = reviews.export(samples)
+        content = ''.join(json.dumps(row, ensure_ascii=False) + '\n' for row in rows)
+        return Response(content, media_type='application/x-ndjson',
+                        headers={'Content-Disposition': 'attachment; filename=reviewed-development.jsonl'})
 
     @app.exception_handler(ReservationError)
     async def reservation_error(request: Request, error: ReservationError):

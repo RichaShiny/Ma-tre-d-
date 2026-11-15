@@ -32,6 +32,18 @@ python -m pytest -q
 
 The initial suite covers the API journey, required confirmation, idempotent retries, changed retry payloads, concurrent booking attempts, capacity, cancellation, invalid dates, booking windows, party limits, and accommodation messaging. These are deterministic product checks, not conversation or model evaluations.
 
+## Speech-quality lab
+
+Open `/quality` to inspect the synthetic transcript benchmark, language and condition coverage, and ranked human-review queue. The workbench supports audited text annotations and a development-only JSONL export. Test references stay frozen.
+
+Generate the same report without running the server:
+
+```bash
+python -m app.quality --output data/speech-quality-report.json
+```
+
+This lab uses 12 authored transcript fixtures, not audio or real model outputs. Its metrics and confidence values are illustrative. No ASR provider, training job, or production performance improvement is claimed. See [the speech-quality methodology](docs/speech-quality.md).
+
 ## Product rules
 
 - Restaurant timezone: America/New_York.
@@ -45,9 +57,10 @@ The initial suite covers the API journey, required confirmation, idempotent retr
 ## Layout
 
 ```text
-app/          Reservation tools, API, and demo interface
-tests/       Deterministic regression checks
-docs/        Architecture and build roadmap
+app/          Reservation tools, speech-quality lab, API, and interfaces
+datasets/     Versioned synthetic transcript fixtures
+tests/        Deterministic regression checks
+docs/         Architecture, data methodology, and build roadmap
 ```
 
 ## Next milestones
