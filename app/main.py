@@ -8,13 +8,37 @@ from fastapi.responses import FileResponse, JSONResponse, Response
 from pydantic import BaseModel, Field
 
 from app.reservations import Reservations, ReservationError, ZONE
+from app.conversation import Conversations
 from app.quality import load_samples, report, review_queue, dataset_hash, Reviews
 import json
 
 
 def create_app(database=None, clock=None):
-    app = FastAPI(title='Maître d’', version='0.1.0')
+    app = FastAPI(title='Maître d’', version='0.2.0')
     service = Reservations(database or os.getenv('DATABASE_PATH', 'data/reservations.sqlite3'), clock)
+
+    conversations = Conversations(service)
+
+    @app.get('/host')
+    def host_page():
+        return FileResponse(Path(__file__).with_name('host.html'))
+
+    @app.post('/api/conversations')
+    def new_conversation():
+        return conversations.create()
+
+    @app.get('/api/conversations/{session_id}')
+    def get_conversation(session_id: UUID):
+        return conversations.get(str(session_id))
+
+    class Turn(BaseModel):
+        request_id: UUID
+        text: str = Field(default='', max_length=1000)
+        confirm_revision: int | None = Field(default=None, strict=True, ge=0)
+
+    @app.post('/api/conversations/{session_id}/turns')
+    def conversation_turn(session_id: UUID, body: Turn):
+        return conversations.turn(str(session_id), str(body.request_id), body.text, body.confirm_revision)
 
     samples = load_samples()
     reviews = Reviews(service.path)

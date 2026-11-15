@@ -37,3 +37,7 @@ Use synthetic and consented, de-identified data for a narrow reservation-field e
 ## Implemented foundation: speech-quality lab
 
 The transcript-quality workbench now provides synthetic fixtures, repeatable WER/CER reports, coverage slices, a heuristic review queue, provenance-aware annotations, and development-only exports. See [speech-quality methodology](speech-quality.md). Actual audio characterization, calibrated ASR outputs, active-learning experiments, model adaptation, and representative benchmarks remain future work.
+
+## Implemented foundation: conversational booking
+
+The `/host` page now has persistent draft states, local English extraction, restaurant-local relative dates, ambiguity clarification, explicit revision-bound confirmation, transactional booking, and safe turn retries. A reusable CLI runs 10 synthetic conversation scenarios. See [conversation design](conversation.md). Hosted model adapters, general language understanding, actual human transfer, and voice remain future work.
