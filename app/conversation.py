@@ -153,24 +153,40 @@ class Conversations:
         if (not text and confirm_revision is None) or (text and confirm_revision is not None):
             raise ReservationError('Send a message or an explicit confirmation action, not both.')
         fingerprint = json.dumps([text, confirm_revision])
-        with self.reservations.connect() as db:
-            db.execute('BEGIN IMMEDIATE')
+        def read(db):
             row = db.execute('SELECT state FROM conversations WHERE id=?', (session,)).fetchone()
             if not row:
                 raise ReservationError('Conversation not found. Start a new conversation.')
             cached = db.execute('SELECT fingerprint,response FROM conversation_turns WHERE session_id=? AND request_id=?', (session, request_id)).fetchone()
-            if cached:
-                if cached[0] != fingerprint:
-                    raise ReservationError('This message ID was already used for different content.')
-                return json.loads(cached[1])
-            state = json.loads(row[0])
+            if cached and cached[0] != fingerprint:
+                raise ReservationError('This message ID was already used for different content.')
+            return row[0], json.loads(cached[1]) if cached else None
+
+        # Run model calls outside the database write transaction.
+        with self.reservations.connect() as db:
+            snapshot, cached = read(db)
+        if cached is not None:
+            return cached
+        extraction = None
+        if text and json.loads(snapshot)['status'] not in ('booked', 'handoff'):
+            now = self.reservations.clock().astimezone(ZONE)
+            extraction = Extraction.model_validate(self.provider.extract(text, now))
+
+        with self.reservations.connect() as db:
+            db.execute('BEGIN IMMEDIATE')
+            current, cached = read(db)
+            if cached is not None:
+                return cached
+            if current != snapshot and text:
+                raise ReservationError('The conversation changed. Reload the latest draft before sending again.')
+            state = json.loads(current)
             if confirm_revision is not None:
                 self.confirm(db, session, state, confirm_revision)
             elif state['status'] in ('booked', 'handoff'):
                 state['messages'].append({'role': 'host', 'text': 'Start a new conversation for another request. Use the reservation studio to cancel an existing booking.'})
             else:
                 state['messages'].append({'role': 'guest', 'text': text})
-                self.advance(db, state, text)
+                self.advance(db, state, extraction)
             state['messages'] = state['messages'][-40:]
             response = self.view(session, state)
             db.execute('UPDATE conversations SET state=? WHERE id=?', (json.dumps(state), session))
@@ -181,10 +197,7 @@ class Conversations:
     def say(self, state, message):
         state['messages'].append({'role': 'host', 'text': message})
 
-    def advance(self, db, state, text):
-        now = self.reservations.clock().astimezone(ZONE)
-        # Re-validate provider output; provider implementations never own state transitions.
-        extraction = Extraction.model_validate(self.provider.extract(text, now))
+    def advance(self, db, state, extraction):
         state['revision'] += 1  # Any new message invalidates an earlier confirmation.
         state['status'] = 'collecting'
         if extraction.handoff:

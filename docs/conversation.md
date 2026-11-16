@@ -8,7 +8,7 @@ Architecture:
 
 Browser → conversation API → extraction provider → typed field proposals → state machine → reservation tools → SQLite.
 
-`ExtractionProvider` is a Python protocol. The built-in `DemoParser` is deterministic and uses no model, voice provider, network access, or API keys. Future model adapters can propose the same `Extraction` fields, but cannot mark a reservation confirmed or call booking tools themselves. This is an extension seam, not a completed multi-provider integration.
+`ExtractionProvider` is a Python protocol. The built-in `DemoParser` is deterministic and uses no model, voice provider, network access, or API keys. Future model adapters can propose the same `Extraction` fields, but cannot mark a reservation confirmed or call booking tools themselves. The optional Ollama adapter below uses this interface.
 
 ## States and safety
 
@@ -51,4 +51,25 @@ The pytest suite also checks stale confirmations, changed details, simultaneous 
 
 ## Next
 
-Add a hosted extraction adapter with strict output validation, failure handling, latency/cost traces, and prompt versioning. Compare it against the same deterministic scenarios, expand independent adversarial cases, then connect streaming voice to this state machine. Add authentication, consent, retention/deletion controls, and PostgreSQL before a public deployment.
+Run live model comparisons, expand independent adversarial cases, then connect streaming voice to this state machine. Add authentication, consent, retention/deletion controls, and PostgreSQL before a public deployment.
+
+## Optional model-assisted extraction
+
+Set `MAITRE_MODEL` to a model already installed in a running Ollama server:
+
+```bash
+MAITRE_MODEL=your-installed-model python3 -m uvicorn app.main:app --reload
+```
+
+The server defaults to `http://127.0.0.1:11434`. An operator can set `MAITRE_MODEL_URL` to a trusted self-hosted Ollama endpoint. Only the current guest message and restaurant-local clock are sent; historical messages and existing bookings are not included. A remote endpoint receives the current message, so use only fictional guest data in the demo.
+
+The adapter uses [Ollama structured outputs](https://docs.ollama.com/capabilities/structured-outputs) and validates the response again locally. It fills missing draft fields while preserving deterministic parser results and explicit clarification. The model cannot return guest-facing replies, call tools, or confirm a booking. Network and validation errors use the local parser. Model requests happen outside the database write transaction; a draft changed mid-request must be reloaded before retrying. Server logs record prompt version, outcome and latency without message text.
+
+Compare the local fixture baseline with the configured adapter:
+
+```bash
+python3 -m app.evaluate
+MAITRE_MODEL=your-installed-model python3 -m app.evaluate --configured-model
+```
+
+Check `model_requests` in the report: fallback requests do not establish model quality. This smoke suite tests the combined parser/adapter, and live model accuracy, voice performance, and cost have not been measured.

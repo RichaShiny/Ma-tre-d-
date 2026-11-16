@@ -8,6 +8,7 @@ from uuid import uuid4
 
 from app.conversation import Conversations
 from app.reservations import Reservations
+from app.models import configured_provider
 
 DEFAULT_SCENARIOS = Path(__file__).resolve().parent.parent / 'datasets' / 'conversation_scenarios.json'
 
@@ -50,7 +51,8 @@ def evaluate(path=DEFAULT_SCENARIOS, provider=None):
         results.append({'id': scenario['id'], 'passed': not failures, 'failures': failures})
     return {'suite_version': manifest['version'], 'reference_time': reference.isoformat(),
             'provider': provider.name if provider else 'local-parser-v1',
-            'scope': 'synthetic text scenarios; no voice or hosted-model benchmark',
+            'model_requests': getattr(provider, 'outcomes', {}),
+            'scope': 'synthetic text scenarios; no voice benchmark',
             'passed': sum(item['passed'] for item in results), 'total': len(results), 'results': results}
 
 
@@ -58,8 +60,12 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--scenarios', type=Path, default=DEFAULT_SCENARIOS)
     parser.add_argument('--output', type=Path)
+    parser.add_argument('--configured-model', action='store_true', help='Use the model configured in the environment.')
     args = parser.parse_args()
-    result = evaluate(args.scenarios)
+    provider = configured_provider() if args.configured_model else None
+    if args.configured_model and provider is None:
+        parser.error('--configured-model requires MAITRE_MODEL')
+    result = evaluate(args.scenarios, provider)
     content = json.dumps(result, indent=2) + '\n'
     if args.output:
         args.output.parent.mkdir(parents=True, exist_ok=True)
