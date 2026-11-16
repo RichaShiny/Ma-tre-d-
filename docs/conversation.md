@@ -73,3 +73,11 @@ MAITRE_MODEL=your-installed-model python3 -m app.evaluate --configured-model
 ```
 
 Check `model_requests` in the report: fallback requests do not establish model quality. This smoke suite tests the combined parser/adapter, and live model accuracy, voice performance, and cost have not been measured.
+
+## Browser voice preview
+
+On `/host`, click **Start microphone**, speak, then click **Stop microphone** if recognition has not already ended. Final text goes into the message box for review and editing. Click **Send message** to submit. The microphone never submits a turn or confirms a reservation. Send or clear any unsent draft before confirming.
+
+Use **Read latest reply** for on-demand playback or enable **Read new replies aloud**. **Stop speaking** stops playback; starting the microphone also stops it. Confirmation codes are displayed rather than read aloud. Typing works even when microphone access is denied or recognition is unavailable.
+
+This preview uses the browser's [Web Speech API](https://webaudio.github.io/web-speech-api/). Support and processing depend on the browser; speech recognition may use the browser's remote service. Maître d’ does not upload audio itself. Only submitted text reaches the application backend. Use fictional details. This is a turn-based browser demo, not telephony, a provider-streaming integration, or full-duplex voice. Automated tests simulate browser speech events; actual microphone and playback behavior needs a manual browser pass.
