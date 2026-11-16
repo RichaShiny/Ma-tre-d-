@@ -6,7 +6,7 @@ A restaurant host that gets the details right. This project is growing toward re
 
 A responsive reservation studio for **Juniper & Rye**, a fictional restaurant. Guests can check real availability against a local SQLite database, review and explicitly confirm a booking, save a confirmation code, and cancel a reservation. The backend prevents duplicate bookings under concurrent requests and safely handles request retries.
 
-The `/host` page adds a persistent conversational booking flow with a limited English parser, explicit confirmation, and safe retries. This is a local product prototype. It does not connect to a real restaurant, use a language model, or support voice yet. Accommodation requests are recorded but never guaranteed. It includes a notice to speak with staff about allergies and accessibility; actual staff handoff is not implemented yet.
+The `/host` page adds a persistent conversational booking flow with a limited English parser, explicit confirmation, and safe retries. This is a local product prototype. It does not connect to a real restaurant or support voice yet. Optional model-assisted text extraction is available through a self-hosted Ollama server. Accommodation requests are recorded but never guaranteed. It includes a notice to speak with staff about allergies and accessibility; actual staff handoff is not implemented yet.
 
 ## Run locally
 
@@ -42,7 +42,7 @@ Open `/host` and try:
 
 The host uses the same real local booking tools as the studio. A message like “yes” does not book anything. Changes invalidate old confirmation revisions. Weekdays and ambiguous times require clarification. Conversation state and idempotent turn outcomes persist in SQLite; browser session storage helps resume interrupted requests.
 
-This is a deterministic parser demo, not an LLM integration. The `ExtractionProvider` interface accepts typed proposals; the state machine owns confirmation, validation, and tool execution. See [conversation design](docs/conversation.md).
+The default demo uses a deterministic parser. For optional model-assisted extraction, set `MAITRE_MODEL` to a model installed in your running Ollama server. The `ExtractionProvider` interface accepts typed proposals; the state machine owns confirmation, validation, and tool execution. See [conversation design](docs/conversation.md).
 
 Run the offline conversation suite:
 
@@ -85,7 +85,7 @@ docs/         Architecture, data methodology, and build roadmap
 
 ## Next milestones
 
-1. Connect a hosted model to the extraction interface and evaluate it against the local parser; add richer date and intent handling.
+1. Run live model comparisons and expand date and intent scenarios.
 2. Streaming speech recognition, language model, and speech synthesis; interruption handling and staff handoff.
 3. Speech-to-speech comparison, provider routing, trace capture, and scenario evaluations.
 4. PostgreSQL migration, Cloud Run deployment, and a Vertex AI experiment.

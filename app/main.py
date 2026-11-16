@@ -9,15 +9,16 @@ from pydantic import BaseModel, Field
 
 from app.reservations import Reservations, ReservationError, ZONE
 from app.conversation import Conversations
+from app.models import configured_provider
 from app.quality import load_samples, report, review_queue, dataset_hash, Reviews
 import json
 
 
-def create_app(database=None, clock=None):
+def create_app(database=None, clock=None, provider=None):
     app = FastAPI(title='Maître d’', version='0.2.0')
     service = Reservations(database or os.getenv('DATABASE_PATH', 'data/reservations.sqlite3'), clock)
 
-    conversations = Conversations(service)
+    conversations = Conversations(service, provider)
 
     @app.get('/host')
     def host_page():
@@ -118,4 +119,4 @@ def create_app(database=None, clock=None):
     return app
 
 
-app = create_app()
+app = create_app(provider=configured_provider())
