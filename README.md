@@ -6,7 +6,7 @@ A restaurant host that gets the details right. This project is growing toward re
 
 A responsive reservation studio for **Juniper & Rye**, a fictional restaurant. Guests can check real availability against a local SQLite database, review and explicitly confirm a booking, save a confirmation code, and cancel a reservation. The backend prevents duplicate bookings under concurrent requests and safely handles request retries.
 
-The `/host` page adds a persistent conversational booking flow with a limited English parser, explicit confirmation, and safe retries. This is a local product prototype. It does not connect to a real restaurant or support voice yet. Optional model-assisted text extraction is available through a self-hosted Ollama server. Accommodation requests are recorded but never guaranteed. It includes a notice to speak with staff about allergies and accessibility; actual staff handoff is not implemented yet.
+The `/host` page adds a persistent conversational booking flow with a limited English parser, explicit confirmation, and safe retries. This is a local product prototype. It does not connect to a real restaurant. The chat host includes a browser voice preview where supported. Optional model-assisted text extraction is available through a self-hosted Ollama server. Accommodation requests are recorded but never guaranteed. It includes a notice to speak with staff about allergies and accessibility; actual staff handoff is not implemented yet.
 
 ## Run locally
 
@@ -28,13 +28,14 @@ By default, reservations persist in `data/reservations.sqlite3`. Set `DATABASE_P
 ```bash
 python -m pip install -r requirements-dev.txt
 python -m pytest -q
+node --test tests/voice.test.mjs  # optional browser speech event tests
 ```
 
 The initial suite covers the API journey, required confirmation, idempotent retries, changed retry payloads, concurrent booking attempts, capacity, cancellation, invalid dates, booking windows, party limits, and accommodation messaging. These are deterministic product checks, not conversation or model evaluations.
 
 ## Conversational host
 
-Open `/host` and try:
+Open `/host` and type, or use **Start microphone** to draft an editable transcript. Try:
 
 1. “A table for four tomorrow at 6:30 pm”
 2. “My name is Richa”

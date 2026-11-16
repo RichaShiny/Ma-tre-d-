@@ -24,6 +24,10 @@ def create_app(database=None, clock=None, provider=None):
     def host_page():
         return FileResponse(Path(__file__).with_name('host.html'))
 
+    @app.get('/assets/voice.mjs', include_in_schema=False)
+    def voice_module():
+        return FileResponse(Path(__file__).with_name('voice.mjs'), media_type='text/javascript')
+
     @app.post('/api/conversations')
     def new_conversation():
         return conversations.create()

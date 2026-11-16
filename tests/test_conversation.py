@@ -189,3 +189,12 @@ def test_ambiguous_edits_never_reuse_old_details(host, text, field):
     edited = say(host, state['session_id'], text)
     assert not edited['can_confirm']
     assert field not in edited['draft']
+
+
+def test_host_voice_module_is_served_to_browser(tmp_path):
+    client = TestClient(create_app(tmp_path / 'api.sqlite3'))
+    page = client.get('/host')
+    assert '/assets/voice.mjs' in page.text
+    asset = client.get('/assets/voice.mjs')
+    assert asset.status_code == 200
+    assert asset.headers['content-type'].startswith('text/javascript')
